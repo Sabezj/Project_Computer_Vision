@@ -1,0 +1,3 @@
+model,params_m,seq_lens,approx_ops_m,attn_mem_mb,best_val_acc,test_acc,train_time_min
+vit_tiny_baseline,1.206,"[65, 65, 65, 65, 65, 65, 65]",29.94,28.88,0.6296,0.6227,69.19
+vit_tiny_token_pool,1.208,"[65, 65, 65, 17, 17, 17, 17]",17.29,13.51,0.611,0.6022,46.87
