@@ -1,88 +1,103 @@
-# Paper Overview — Token Pooling in Vision Transformers
+# Project Results — Token Pooling in Vision Transformers
 
-## Original paper
+## Overview
 
-**Title:** Token Pooling in Vision Transformers  
-**Authors:** Dmitrii Marin, Jen-Hao Rick Chang, Anurag Ranjan, Anish Prabhu, Mohammad Rastegari, Oncel Tuzel
+The goal of this project was to compare two compact image classification models:
 
-**Original paper links:**
-- [OpenReview page](https://openreview.net/forum?id=EGtUVDm991w)
-- [arXiv page](https://arxiv.org/abs/2110.03860)
+- **Baseline ViT** — a small Vision Transformer without token reduction
+- **Token Pooling ViT** — the same backbone with a token pooling stage that reduces the number of visual tokens during processing
 
----
-
-## Main idea
-
-The paper studies how to make Vision Transformers more efficient by reducing the number of tokens processed in later layers. Instead of keeping the full token sequence through the entire network, the authors propose **Token Pooling**, a data-aware downsampling strategy that removes redundancy in token representations while preserving most of the useful information.
-
-The main intuition is that after self-attention, token representations become smoother and more redundant. Because of this, some tokens can be merged or approximated without a large loss in quality. This allows the model to reduce computation and memory usage while keeping accuracy relatively close to the original transformer.
+The comparison was performed on **CIFAR-10** in a lightweight experimental setup.
 
 ---
 
-## Motivation
+## Final quantitative results
 
-Vision Transformers are powerful, but their computational cost grows quickly with the sequence length. In image models, smaller patches usually improve representation quality, but they also increase the number of tokens and make attention more expensive.
+### Baseline ViT
+- **Best validation accuracy:** 0.6296
+- **Test accuracy:** 0.6227
+- **Training time:** ~69.2 minutes
+- **Sequence length:** 65 tokens
+- **Approximate attention cost:** 29.94M
+- **Attention memory proxy:** 28.88 MB
 
-The paper argues that reducing complexity only inside the attention operation is not always enough, because a large part of the overall computation is also spent in fully connected layers. For this reason, the authors focus on reducing the number of tokens themselves, which decreases the cost of multiple parts of the network.
-
----
-
-## Method summary
-
-The proposed method introduces a token downsampling step inside the transformer pipeline.
-
-At a high level, the method works as follows:
-
-1. The image is converted into a sequence of patch tokens.
-2. Transformer layers process these tokens as usual.
-3. A token pooling stage compresses the sequence by grouping similar tokens.
-4. The reduced token set is passed to the next transformer layers.
-5. The final prediction is made from the shorter sequence.
-
-The paper formulates token reduction as an approximation problem: the goal is to represent the original set of tokens with a smaller set while minimizing reconstruction error. In the full method, this is solved through a clustering-based procedure.
+### Token Pooling ViT
+- **Best validation accuracy:** 0.6110
+- **Test accuracy:** 0.6022
+- **Training time:** ~46.9 minutes
+- **Sequence length after pooling:** 17 tokens
+- **Approximate attention cost:** 17.29M
+- **Attention memory proxy:** 13.51 MB
 
 ---
 
-## Why this paper is interesting
+## Main comparison
 
-This paper is interesting because it focuses on a very practical trade-off:
+The baseline model achieved the best classification accuracy, but it was also more expensive.
 
-- fewer tokens
-- lower computation
-- lower memory usage
-- slightly reduced accuracy
+The pooled model:
+- reduced the token sequence from **65** to **17**
+- reduced the attention cost proxy from **29.94M** to **17.29M**
+- reduced the attention memory proxy from **28.88 MB** to **13.51 MB**
+- trained noticeably faster
 
-Instead of changing the whole transformer architecture, the method modifies one important part of the pipeline: how many tokens are preserved after intermediate processing. This makes the idea modular and easy to compare against a baseline Vision Transformer.
-
----
-
-## Why a small-scale reproduction makes sense
-
-A full reproduction of the paper would require larger datasets and stronger training settings. However, the core idea can still be studied in a compact educational setup:
-
-- build a small baseline Vision Transformer
-- add a token pooling stage
-- compare token count, runtime, and classification accuracy
-- analyze the trade-off between efficiency and quality
-
-This kind of simplified experiment is enough to demonstrate the central claim of the paper: reducing token redundancy can improve efficiency without completely destroying model performance.
+At the same time, the accuracy drop was relatively small:
+- validation accuracy decreased by about **1.9 percentage points**
+- test accuracy decreased by about **2.0 percentage points**
 
 ---
 
-## What is reproduced in this project
+## What these results mean
 
-This project focuses on a **small-scale reproduction of the main idea**, not on reproducing the exact training setup of the original paper.
+These results confirm the main idea behind token pooling:
 
-The implemented version keeps the same high-level goal:
+### 1. Token reduction really lowers computation
+The pooled model processes a much shorter token sequence in later stages of the network. Since transformer attention depends strongly on sequence length, this leads to lower computational cost and lower memory usage.
 
-- compare a baseline ViT with a token-reduced variant
-- study how token reduction changes sequence length and compute
-- evaluate whether the pooled model remains competitive on image classification
+### 2. Efficiency improves without destroying performance
+The pooled model is clearly cheaper, but the drop in classification quality is moderate rather than catastrophic. This is important because it means the removed tokens were not all equally necessary for final prediction.
 
-The project is intended to demonstrate the mechanism and intuition behind token pooling in a lightweight setting.
+### 3. The baseline model still preserves more information
+The baseline model performs slightly better because it keeps the full token sequence throughout the network. This allows it to preserve more fine-grained visual information.
+
+### 4. The trade-off is meaningful
+The project demonstrates a realistic efficiency–accuracy trade-off:
+
+- **Baseline ViT** — better accuracy, higher cost
+- **Token Pooling ViT** — lower cost, slightly lower accuracy
+
+This is exactly the type of behavior that makes token pooling useful in practice.
 
 ---
 
-## Takeaway
+## Training behavior
 
-The key message of the paper is that not all visual tokens are equally necessary at every stage of the network. If redundant tokens are removed in a principled way, a Vision Transformer can become significantly more efficient while preserving most of its predictive power.
+The training curves show that both models learned in a stable way.  
+The pooled model followed a trajectory similar to the baseline, but consistently stayed slightly below it in validation accuracy.
+
+This suggests that token pooling does not break optimization. Instead, it introduces an efficiency constraint that slightly reduces representational capacity.
+
+---
+
+## Qualitative interpretation
+
+The token-count visualization shows that the pooled model successfully compresses the sequence.  
+The pooling assignment visualization also supports the idea that multiple visual tokens can be merged into a smaller representation.
+
+This means the project does not only show a numerical difference in accuracy, but also demonstrates the actual structural effect of token pooling inside the model.
+
+---
+
+## Final conclusion
+
+The results show that the compact reproduction was successful.
+
+The project demonstrates that:
+
+- reducing the number of visual tokens lowers transformer cost
+- a shorter token sequence reduces memory and runtime
+- the pooled model remains competitive despite using fewer tokens
+- token pooling is a practical way to trade a small amount of accuracy for a noticeable gain in efficiency
+
+This should be interpreted as a **small-scale proof of concept** rather than a full-scale reproduction of the original paper.  
+Even in this lightweight setup, the central idea of the method is clearly visible and supported by the results.
